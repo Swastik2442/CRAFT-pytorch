@@ -2,5 +2,10 @@
 *.swp
 *.pkl
 *.pth
+data*
 result*
 weights*
+
+.venv
+__pycache__
+.mypy_cache

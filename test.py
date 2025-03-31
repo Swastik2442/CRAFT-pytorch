@@ -1,33 +1,26 @@
-"""  
+"""
 Copyright (c) 2019-present NAVER Corp.
 MIT License
 """
 
 # -*- coding: utf-8 -*-
-import sys
 import os
 import time
 import argparse
+from collections import OrderedDict
 
 import torch
-import torch.nn as nn
-import torch.backends.cudnn as cudnn
+from torch.backends import cudnn
 from torch.autograd import Variable
 
-from PIL import Image
-
 import cv2
-from skimage import io
 import numpy as np
 import craft_utils
 import imgproc
 import file_utils
-import json
-import zipfile
 
 from craft import CRAFT
 
-from collections import OrderedDict
 def copyStateDict(state_dict):
     if list(state_dict.keys())[0].startswith("module"):
         start_idx = 1
@@ -52,7 +45,7 @@ parser.add_argument('--canvas_size', default=1280, type=int, help='image size fo
 parser.add_argument('--mag_ratio', default=1.5, type=float, help='image magnification ratio')
 parser.add_argument('--poly', default=False, action='store_true', help='enable polygon type')
 parser.add_argument('--show_time', default=False, action='store_true', help='show processing time')
-parser.add_argument('--test_folder', default='/data/', type=str, help='folder path to input images')
+parser.add_argument('--test_folder', default='data/', type=str, help='folder path to input images')
 parser.add_argument('--refine', default=False, action='store_true', help='enable link refiner')
 parser.add_argument('--refiner_model', default='weights/craft_refiner_CTW1500.pth', type=str, help='pretrained refiner model')
 
@@ -70,7 +63,9 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, r
     t0 = time.time()
 
     # resize
-    img_resized, target_ratio, size_heatmap = imgproc.resize_aspect_ratio(image, args.canvas_size, interpolation=cv2.INTER_LINEAR, mag_ratio=args.mag_ratio)
+    img_resized, target_ratio, _size_heatmap = imgproc.resize_aspect_ratio(
+        image, args.canvas_size, interpolation=cv2.INTER_LINEAR, mag_ratio=args.mag_ratio
+    )
     ratio_h = ratio_w = 1 / target_ratio
 
     # preprocessing
@@ -104,7 +99,8 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, r
     boxes = craft_utils.adjustResultCoordinates(boxes, ratio_w, ratio_h)
     polys = craft_utils.adjustResultCoordinates(polys, ratio_w, ratio_h)
     for k in range(len(polys)):
-        if polys[k] is None: polys[k] = boxes[k]
+        if polys[k] is None:
+            polys[k] = boxes[k]
 
     t1 = time.time() - t1
 
@@ -131,7 +127,7 @@ if __name__ == '__main__':
 
     if args.cuda:
         net = net.cuda()
-        net = torch.nn.DataParallel(net)
+        net = torch.nn.DataParallel(net) # type: ignore
         cudnn.benchmark = False
 
     net.eval()
@@ -145,7 +141,7 @@ if __name__ == '__main__':
         if args.cuda:
             refine_net.load_state_dict(copyStateDict(torch.load(args.refiner_model)))
             refine_net = refine_net.cuda()
-            refine_net = torch.nn.DataParallel(refine_net)
+            refine_net = torch.nn.DataParallel(refine_net) # type: ignore
         else:
             refine_net.load_state_dict(copyStateDict(torch.load(args.refiner_model, map_location='cpu')))
 
