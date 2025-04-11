@@ -8,41 +8,22 @@ MIT License
 import time
 from collections import OrderedDict
 
+import cv2
 import torch
 from torch.backends import cudnn
 from torch.autograd import Variable
 
-import cv2
-import numpy as np
-
 from src import craft_utils
 from src import imgproc
-# from src import file_utils
-
 from src.craft import CRAFT
 
 def copyStateDict(state_dict):
-    if list(state_dict.keys())[0].startswith("module"):
-        start_idx = 1
-    else:
-        start_idx = 0
+    start_idx = 1 if tuple(state_dict.keys())[0].startswith("module") else 0
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
         name = ".".join(k.split(".")[start_idx:])
         new_state_dict[name] = v
     return new_state_dict
-
-def str2bool(v):
-    return v.lower() in ("yes", "y", "true", "t", "1")
-
-# """ For test images in a folder """
-# image_list, _, _ = file_utils.get_files(args.test_folder)
-
-# result_folder = './result/'
-# if not os.path.isdir(result_folder):
-#     os.mkdir(result_folder)
-
-
 
 class TextRegions:
     """Provides Text Regions per Image"""
@@ -76,7 +57,9 @@ class TextRegions:
 
         # resize
         img_resized, target_ratio, _size_heatmap = imgproc.resize_aspect_ratio(
-            image, self.canvas_size, interpolation=cv2.INTER_LINEAR, mag_ratio=self.mag_ratio
+            image, self.canvas_size,
+            mag_ratio=self.mag_ratio,
+            interpolation=cv2.INTER_LINEAR,
         )
         ratio_h = ratio_w = 1 / target_ratio
 
@@ -94,11 +77,15 @@ class TextRegions:
         score_text = y[0,:,:,0].cpu().data.numpy()
         score_link = y[0,:,:,1].cpu().data.numpy()
 
-        t0 = time.time() - t0
         t1 = time.time()
+        t0 = t1 - t0
 
         # Post-processing
-        boxes, polys = craft_utils.getDetBoxes(score_text, score_link, self.text_threshold, self.link_threshold, self.low_text, self.poly)
+        boxes, polys = craft_utils.getDetBoxes(
+            score_text, score_link,
+            self.text_threshold, self.link_threshold,
+            self.low_text, self.poly
+        )
 
         # coordinate adjustment
         boxes = craft_utils.adjustResultCoordinates(boxes, ratio_w, ratio_h)
@@ -107,32 +94,18 @@ class TextRegions:
             if polys[k] is None:
                 polys[k] = boxes[k]
 
-        t1 = time.time() - t1
-
-        # render results (optional)
-        render_img = score_text.copy()
-        render_img = np.hstack((render_img, score_link))
-        ret_score_text = imgproc.cvt2HeatmapImg(render_img)
-
         if show_time:
+            t1 = time.time() - t1
             print(f"\ninfer/postproc time : {t0:.3f}/{t1:.3f}")
 
-        return boxes, polys, ret_score_text
+        return polys
 
     def generateRegions(self, image_path, show_time=False):
         self.net.eval()
         t = time.time()
         image = imgproc.loadImage(image_path)
 
-        _bboxes, polys, _score_text = self.test_net(image, show_time)
-
-        # save score text
-        # filename, _ = os.path.splitext(os.path.basename(image_path))
-        # mask_file = result_folder + "/res_" + filename + '_mask.jpg'
-        # cv2.imwrite(mask_file, score_text)
-
-        # file_utils.saveResult(image_path, image[:,:,::-1], polys, dirname=result_folder)
-
+        polys = self.test_net(image, show_time)
         if show_time:
             print(f"elapsed time : {time.time() - t}s")
 

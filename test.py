@@ -110,7 +110,8 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, r
     render_img = np.hstack((render_img, score_link))
     ret_score_text = imgproc.cvt2HeatmapImg(render_img)
 
-    if args.show_time : print(f"\ninfer/postproc time : {t0:.3f}/{t1:.3f}")
+    if args.show_time:
+        print(f"\ninfer/postproc time : {t0:.3f}/{t1:.3f}")
 
     return boxes, polys, ret_score_text
 
