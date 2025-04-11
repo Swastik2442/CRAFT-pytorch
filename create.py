@@ -26,21 +26,33 @@ def copyStateDict(state_dict):
     return new_state_dict
 
 class TextRegions:
-    """Provides Text Regions per Image"""
+    """Detects Text Regions in an Image"""
 
     def __init__(self, **kwargs):
+        """
+        Detects Text Regions in an Image
+
+        Args:
+            trained_model (str): Path to Trained Model
+            text_threshold (float): Default 0.7
+            low_text (float): Default 0.4
+            link_threshold (float): Default 0.4
+            mag_ratio (float): Default 1.5
+            poly (bool): Default False
+            show_time (bool): Whether to show Inference Time
+            canvas_size (int): Size of the Image Canvas. Default 1280
+            device (str): Device to run the Model on
+        """
+
         self.trained_model = kwargs.get("trained_model", 'weights/craft_mlt_25k.pth')
         self.text_threshold = kwargs.get("text_threshold", 0.7)
         self.low_text = kwargs.get("low_text", 0.4)
         self.link_threshold = kwargs.get("link_threshold", 0.4)
-        self.device = torch.device(kwargs.get("device", 'cuda' if torch.cuda.is_available() else 'cpu'))
         self.canvas_size = kwargs.get("canvas_size", 1280)
         self.mag_ratio = kwargs.get("mag_ratio", 1.5)
         self.poly = kwargs.get("poly", False)
         self.show_time = kwargs.get("show_time", False)
-        self.test_folder = kwargs.get("test_folder", 'data/')
-        self.refine = kwargs.get("refine", False)
-        self.refiner_model = kwargs.get("refiner_model", 'weights/craft_refiner_CTW1500.pth')
+        self.device = torch.device(kwargs.get("device", 'cuda' if torch.cuda.is_available() else 'cpu'))
 
         self.net = CRAFT()
 
@@ -52,7 +64,7 @@ class TextRegions:
             self.net = torch.nn.DataParallel(self.net) # type: ignore
             cudnn.benchmark = False
 
-    def test_net(self, image, show_time=False):
+    def detectRegionsFromImage(self, image):
         t0 = time.time()
 
         # resize
@@ -70,6 +82,7 @@ class TextRegions:
         x = x.to(self.device)
 
         # forward pass
+        self.net.eval()
         with torch.no_grad():
             y, _ = self.net(x)
 
@@ -94,19 +107,18 @@ class TextRegions:
             if polys[k] is None:
                 polys[k] = boxes[k]
 
-        if show_time:
+        if self.show_time:
             t1 = time.time() - t1
             print(f"\ninfer/postproc time : {t0:.3f}/{t1:.3f}")
 
         return polys
 
-    def generateRegions(self, image_path, show_time=False):
-        self.net.eval()
+    def detectRegions(self, image_path: str):
         t = time.time()
         image = imgproc.loadImage(image_path)
 
-        polys = self.test_net(image, show_time)
-        if show_time:
+        polys = self.detectRegionsFromImage(image)
+        if self.show_time:
             print(f"elapsed time : {time.time() - t}s")
 
         return polys
