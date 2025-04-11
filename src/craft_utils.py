@@ -1,4 +1,4 @@
-"""  
+"""
 Copyright (c) 2019-present NAVER Corp.
 MIT License
 """
@@ -86,7 +86,7 @@ def getPoly_core(boxes, labels, mapper, linkmap):
     max_r = 2.0
     step_r = 0.2
 
-    polys = []  
+    polys = []
     for k, box in enumerate(boxes):
         # size filter for small instance
         w, h = int(np.linalg.norm(box[0] - box[1]) + 1), int(np.linalg.norm(box[1] - box[2]) + 1)
@@ -160,7 +160,7 @@ def getPoly_core(boxes, labels, mapper, linkmap):
         if num_sec != 0:
             cp_section[-1] = [cp_section[-1][0] / num_sec, cp_section[-1][1] / num_sec]
 
-        # pass if num of pivots is not sufficient or segment widh is smaller than character height 
+        # pass if num of pivots is not sufficient or segment widh is smaller than character height
         if None in pp or seg_w < np.max(seg_height) * 0.25:
             polys.append(None); continue
 

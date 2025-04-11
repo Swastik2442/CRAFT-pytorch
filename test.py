@@ -15,11 +15,12 @@ from torch.autograd import Variable
 
 import cv2
 import numpy as np
-import craft_utils
-import imgproc
-import file_utils
 
-from craft import CRAFT
+from src import craft_utils
+from src import imgproc
+from src import file_utils
+
+from src.craft import CRAFT
 
 def copyStateDict(state_dict):
     if list(state_dict.keys())[0].startswith("module"):
@@ -109,7 +110,7 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, r
     render_img = np.hstack((render_img, score_link))
     ret_score_text = imgproc.cvt2HeatmapImg(render_img)
 
-    if args.show_time : print("\ninfer/postproc time : {:.3f}/{:.3f}".format(t0, t1))
+    if args.show_time : print(f"\ninfer/postproc time : {t0:.3f}/{t1:.3f}")
 
     return boxes, polys, ret_score_text
 
@@ -121,7 +122,7 @@ if __name__ == '__main__':
 
     print('Loading weights from checkpoint (' + args.trained_model + ')')
     if args.cuda:
-        net.load_state_dict(copyStateDict(torch.load(args.trained_model)))
+        net.load_state_dict(copyStateDict(torch.load(args.trained_model, map_location='cuda')))
     else:
         net.load_state_dict(copyStateDict(torch.load(args.trained_model, map_location='cpu')))
 
@@ -135,7 +136,7 @@ if __name__ == '__main__':
     # LinkRefiner
     refine_net = None
     if args.refine:
-        from refinenet import RefineNet
+        from src.refinenet import RefineNet
         refine_net = RefineNet()
         print('Loading weights of refiner from checkpoint (' + args.refiner_model + ')')
         if args.cuda:
@@ -164,4 +165,4 @@ if __name__ == '__main__':
 
         file_utils.saveResult(image_path, image[:,:,::-1], polys, dirname=result_folder)
 
-    print("elapsed time : {}s".format(time.time() - t))
+    print(f"elapsed time : {time.time() - t}s")
