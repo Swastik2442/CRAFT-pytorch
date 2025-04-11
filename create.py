@@ -13,9 +13,9 @@ import torch
 from torch.backends import cudnn
 from torch.autograd import Variable
 
-from src import craft_utils
-from src import imgproc
-from src.craft import CRAFT
+from .src import craft_utils
+from .src import imgproc
+from .src.craft import CRAFT
 
 def copyStateDict(state_dict):
     start_idx = 1 if tuple(state_dict.keys())[0].startswith("module") else 0
