@@ -8,6 +8,7 @@ MIT License
 import time
 from collections import OrderedDict
 
+import numpy as np
 import cv2
 import torch
 from torch.backends import cudnn
@@ -44,14 +45,14 @@ class TextRegions:
             device (str): Device to run the Model on
         """
 
-        self.trained_model = kwargs.get("trained_model", 'weights/craft_mlt_25k.pth')
-        self.text_threshold = kwargs.get("text_threshold", 0.7)
-        self.low_text = kwargs.get("low_text", 0.4)
-        self.link_threshold = kwargs.get("link_threshold", 0.4)
+        self.trained_model: str = kwargs.get("trained_model", 'weights/craft_mlt_25k.pth')
+        self.text_threshold: float = kwargs.get("text_threshold", 0.7)
+        self.low_text: float = kwargs.get("low_text", 0.4)
+        self.link_threshold: float = kwargs.get("link_threshold", 0.4)
         self.canvas_size = kwargs.get("canvas_size", 1280)
-        self.mag_ratio = kwargs.get("mag_ratio", 1.5)
-        self.poly = kwargs.get("poly", False)
-        self.show_time = kwargs.get("show_time", False)
+        self.mag_ratio: float = kwargs.get("mag_ratio", 1.5)
+        self.poly: bool = kwargs.get("poly", False)
+        self.show_time: bool = kwargs.get("show_time", False)
         self.device = torch.device(kwargs.get("device", 'cuda' if torch.cuda.is_available() else 'cpu'))
 
         self.net = CRAFT()
@@ -64,7 +65,7 @@ class TextRegions:
             self.net = torch.nn.DataParallel(self.net) # type: ignore
             cudnn.benchmark = False
 
-    def detectRegionsFromImage(self, image):
+    def detectRegionsFromImage(self, image: np.ndarray):
         t0 = time.time()
 
         # resize
@@ -82,6 +83,7 @@ class TextRegions:
         x = x.to(self.device)
 
         # forward pass
+        y: torch.Tensor
         self.net.eval()
         with torch.no_grad():
             y, _ = self.net(x)
